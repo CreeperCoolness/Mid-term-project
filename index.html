@@ -130,9 +130,37 @@
 
 
 			
-		$(document).on('click','button[name=delete1]',function(){
-				$(this).parents('.list-group-item').remove();
-			});
+		$(document).on('click', 'button[name=delete1]', function() {
+    var name = $(this).siblings('p:eq(0)').text().split(': ')[1];
+	console.log(name);
+    // Remove the pet from the page
+    $(this).closest('.list-group-item').remove();
+
+    // Find the index of the animal to be deleted
+    var indexToRemove = animals.findIndex(animal => animal.name === name);
+    if (indexToRemove !== -1) {
+        // Remove the pet from the data structure
+        animals.splice(indexToRemove, 1);
+
+        // Update the JSONblob document
+        fetch('https://jsonblob.com/api/jsonBlob/1212836473547382784', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(animals), 
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Data updated successfully:', data);
+        })
+        .catch(error => {
+            console.error('Error updating data:', error);
+        });
+    } else {
+        console.error('Animal not found in the data structure.');
+    }
+});
 	
 		
 		
@@ -252,44 +280,32 @@
 		});
 		
 		$(document).on('click', '#btn-donutshop-add', function() {
-    let li = document.createElement('li');
     let name = $('#bname').val();
-	let image = $('#bimage').val();
+    let image = $('#bimage').val();
     let address = $('#baddress').val();
     let distance = $('#bdistance').val();
     let hours = $('#bhours').val();
     let price = $('#bprice').val();
-	let newIndex = shops.length > 0 ? shops[shops.length - 1].index + 1 : 1;
+    let newIndex = shops.length > 0 ? shops[shops.length - 1].index + 1 : 1;
 
-   
     let newdonutshop = {
         name: name,
-		image: image,
+        image: image,
         address: address,
         distance: distance,
         price: price,
-		hours: hours,
-		index: newIndex
+        hours: hours,
+        index: newIndex
     };
     shops.push(newdonutshop);
 
-    
-    li.innerHTML = `
-        <p>Name: ${name}</p>
-		<p>image: ${image}</p>
-        <p>address: ${address}</p>
-        <p>distance: ${distance}</p>
-        <p>hours: ${hours}</p>
-        <p>price: ${price}</p>
-        <button type="button" class="btn btn-danger" name="delete1">Delete</button>
-        <button type="button" class="btn btn-primary" name="edit1">Edit</button>
-        <button type="button" class="btn btn-primary" id="save1">Save Change</button>`;
+    let newShopCardHTML = generateCard(newdonutshop);
+    let newRow = document.createElement('div');
+    newRow.classList.add('row');
+    newRow.innerHTML = newShopCardHTML;
+    $('#shopCardsContainer').append(newRow);
 
-    li.setAttribute('class', 'list-group-item');
     $('#addDonutShopModal').modal('hide');
-    $('#list').append(li);
-    $("#save1").hide();
-
 
     fetch('https://jsonblob.com/api/jsonBlob/1212836473547382784', {
         method: 'PUT',
@@ -306,50 +322,74 @@
         console.error('Error updating data:', error);
     });
 });
-
-
 		$(document).on('click', 'button[name=edit1]', function() {
-			let listItem = $(this).closest('.list-group-item');
-			let name = listItem.find('p:eq(0)').text().split(': ')[1];
-			let address = listItem.find('p:eq(1)').text().split(': ')[1];
-			let distance = listItem.find('p:eq(2)').text().split(': ')[1];
-			let hours = listItem.find('p:eq(3)').text().split(': ')[1];
-			let price = listItem.find('p:eq(4)').text().split(': ')[1];
-			let image = listItem.find('p:eq(5)').text().split(': ')[1];
+    let listItem = $(this).closest('.list-group-item');
+    let name = listItem.find('p:eq(0)').text().split(': ')[1];
+    let address = listItem.find('p:eq(1)').text().split(': ')[1];
+    let distance = listItem.find('p:eq(2)').text().split(': ')[1];
+    let hours = listItem.find('p:eq(3)').text().split(': ')[1];
+    let price = listItem.find('p:eq(4)').text().split(': ')[1];
+    let image = listItem.find('p:eq(5)').text().split(': ')[1];
 
-			listItem.html(`
-				<p>Name: <textarea class="form-control">${name}</textarea></p>
-				<p>image: <textarea class="form-control">${image}</textarea></p>
-				<p>address: <textarea class="form-control">${address}</textarea></p>
-				<p>distance: <textarea class="form-control">${distance}</textarea></p>
-				<p>hours: <textarea class="form-control">${hours}</textarea></p>
-				<p>price: <textarea class="form-control">${price}</textarea></p>
-				<p>price: <textarea class="form-control">${image}</textarea></p>
-				<button type="button" class="btn btn-danger" name="delete1">Delete</button>
-			<button type="button" class="btn btn-primary" name="save1">Save</button>
-			`);
-		});
+    listItem.html(`
+        <p>Name: <textarea class="form-control">${name}</textarea></p>
+        <p>image: <textarea class="form-control">${image}</textarea></p>
+        <p>Address: <textarea class="form-control">${address}</textarea></p>
+        <p>Distance: <textarea class="form-control">${distance}</textarea></p>
+        <p>Hours: <textarea class="form-control">${hours}</textarea></p>
+        <p>Price Range: <textarea class="form-control">${price}</textarea></p>
+        <button type="button" class="btn btn-danger" name="delete1">Delete</button>
+        <button type="button" class="btn btn-primary" name="save1">Save</button>
+    `);
 
-		$(document).on('click', 'button[name=save1]', function() {
-			let listItem = $(this).closest('.list-group-item');
-			let name = listItem.find('textarea:eq(0)').val();
-			let address = listItem.find('textarea:eq(1)').val();
-			let distance = listItem.find('textarea:eq(2)').val();
-			let hours = listItem.find('textarea:eq(3)').val();
-			let price = listItem.find('textarea:eq(4)').val();
+    $(document).off('click', 'button[name=save1]').on('click', 'button[name=save1]', function() {
+        let editedListItem = $(this).closest('.list-group-item');
+        let newName = editedListItem.find('textarea:eq(0)').val();
+        let newImage = editedListItem.find('textarea:eq(1)').val();
+        let newAddress = editedListItem.find('textarea:eq(2)').val();
+        let newDistance = editedListItem.find('textarea:eq(3)').val();
+        let newHours = editedListItem.find('textarea:eq(4)').val();
+        let newPrice = editedListItem.find('textarea:eq(5)').val();
 
-			listItem.html(`
-				<p>Name: ${name}</p>
-				<p>image: ${image}</p>
-				<p>address: ${address}</p>
-				<p>distance: ${distance}</p>
-				<p>hours: ${hours}</p>
-				<p>price: ${price}</p>
-				<button type="button" class="btn btn-danger" name="delete1">Delete</button>
-				<button type="button" class="btn btn-primary" name="edit1">Edit</button>
-			`);
-		});
-		
+        let index = editedListItem.index(); 
+        if (index !== -1) {
+            shops[index].name = newName;
+            shops[index].image = newImage;
+            shops[index].address = newAddress;
+            shops[index].distance = newDistance;
+            shops[index].hours = newHours;
+            shops[index].price = newPrice;
+
+            fetch('https://jsonblob.com/api/jsonBlob/1212836473547382784', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(shops),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data updated successfully:', data);
+            })
+            .catch(error => {
+                console.error('Error updating data:', error);
+            });
+
+            editedListItem.html(`
+                <p>Name: ${newName}</p>
+                <p>Image: ${newImage}</p>
+                <p>Address: ${newAddress}</p>
+                <p>Distance: ${newDistance}</p>
+                <p>Hours: ${newHours}</p>
+                <p>Price Range: ${newPrice}</p>
+                <button type="button" class="btn btn-danger" name="delete1">Delete</button>
+                <button type="button" class="btn btn-primary" name="edit1">Edit</button>
+            `);
+        } else {
+            console.error('Shop not found in the list.');
+        }
+    });
+});
 		document.querySelector('#actions').append(loadMoreButton);
         window.onload = generateshopCards;
 		
